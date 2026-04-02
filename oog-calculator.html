@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OOG Quote Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ─── RESET & BASE ─── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #F5F3EE;
+    --surface:   #FFFFFF;
+    --border:    #D8D4CC;
+    --text:      #1A1916;
+    --muted:     #6B6760;
+    --accent:    #1A1916;
+    --ok-bg:     #E8F2DF;
+    --ok-text:   #2D6017;
+    --ok-border: #6FAA3A;
+    --warn-bg:   #FDF3DC;
+    --warn-text: #7A4F08;
+    --warn-border:#D4920A;
+    --danger-bg: #FDEAEA;
+    --danger-text:#8B1E1E;
+    --danger-border:#CC3333;
+    --info-bg:   #E8F0FB;
+    --info-text: #1A4A8A;
+    --info-border:#3A72CC;
+    --font-sans: 'IBM Plex Sans', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* ─── LAYOUT ─── */
+  .app-header {
+    background: var(--text);
+    color: #F5F3EE;
+    padding: 18px 24px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .app-header h1 {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+  .app-header span {
+    font-size: 12px;
+    opacity: 0.5;
+    font-family: var(--font-mono);
+  }
+
+  .tab-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    padding: 0 24px;
+  }
+  .tab-btn {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 12px 16px;
+    border: none;
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--text); }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 0;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px;
+    gap: 20px;
+  }
+
+  @media (max-width: 700px) {
+    .main-grid { grid-template-columns: 1fr; padding: 16px; }
+  }
+
+  /* ─── CARDS ─── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+  .card-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  /* ─── FORM ELEMENTS ─── */
+  .field { margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--text);
+  }
+  .field .unit-wrap { position: relative; }
+  .field .unit-wrap input { padding-right: 36px; }
+  .field .unit-tag {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    font-size: 11px; color: var(--muted); font-family: var(--font-mono); pointer-events: none;
+  }
+  .field-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* ─── CALC BUTTON ─── */
+  .calc-btn {
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 11px;
+    background: var(--text);
+    color: #F5F3EE;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: opacity 0.15s;
+    margin-top: 4px;
+  }
+  .calc-btn:hover { opacity: 0.85; }
+
+  /* ─── RESULT CARDS ─── */
+  .result-card {
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    border-left: 3px solid;
+  }
+  .result-card.ok      { background: var(--ok-bg);     border-color: var(--ok-border); }
+  .result-card.warn    { background: var(--warn-bg);   border-color: var(--warn-border); }
+  .result-card.danger  { background: var(--danger-bg); border-color: var(--danger-border); }
+  .result-card.info    { background: var(--info-bg);   border-color: var(--info-border); }
+
+  .result-card .r-title {
+    font-size: 13px; font-weight: 600; margin-bottom: 3px;
+  }
+  .result-card.ok     .r-title { color: var(--ok-text); }
+  .result-card.warn   .r-title { color: var(--warn-text); }
+  .result-card.danger .r-title { color: var(--danger-text); }
+  .result-card.info   .r-title { color: var(--info-text); }
+
+  .result-card .r-body {
+    font-size: 12px; line-height: 1.5;
+  }
+  .result-card.ok     .r-body { color: var(--ok-text); }
+  .result-card.warn   .r-body { color: var(--warn-text); }
+  .result-card.danger .r-body { color: var(--danger-text); }
+  .result-card.info   .r-body { color: var(--info-text); }
+
+  /* ─── BREAKDOWN TABLE ─── */
+  .breakdown { width: 100%; font-size: 12px; border-collapse: collapse; margin: 8px 0 4px; }
+  .breakdown td { padding: 3px 0; }
+  .breakdown td:last-child { text-align: right; font-family: var(--font-mono); font-weight: 500; }
+  .breakdown tr.total-row td { border-top: 1px solid currentColor; padding-top: 6px; font-weight: 600; font-size: 13px; }
+
+  /* ─── TAGS ─── */
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    padding: 2px 8px;
+    border-radius: 3px;
+    margin: 3px 3px 0 0;
+  }
+  .tag.ok      { background: var(--ok-bg);     color: var(--ok-text); }
+  .tag.warn    { background: var(--warn-bg);   color: var(--warn-text); }
+  .tag.danger  { background: var(--danger-bg); color: var(--danger-text); }
+
+  /* ─── NOTES TAB ─── */
+  .notes-wrap {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+  .ref-section { margin-bottom: 24px; }
+  .ref-section h2 {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .ref-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .ref-table th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    padding: 6px 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+  }
+  .ref-table td {
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  .ref-table tr:nth-child(even) td { background: #FAFAF8; }
+  .pill {
+    display: inline-block;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    padding: 1px 7px;
+    border-radius: 3px;
+  }
+  .pill.danger { background: var(--danger-bg); color: var(--danger-text); }
+  .pill.warn   { background: var(--warn-bg);   color: var(--warn-text); }
+  .pill.ok     { background: var(--ok-bg);     color: var(--ok-text); }
+
+  /* ─── NOTES TEXTAREA ─── */
+  .notes-area {
+    width: 100%;
+    min-height: 120px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--bg);
+    color: var(--text);
+    resize: vertical;
+    outline: none;
+    line-height: 1.6;
+  }
+  .notes-area:focus { border-color: var(--text); }
+
+  /* ─── PRINT ─── */
+  .print-btn {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    float: right;
+    margin-top: -4px;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .print-btn:hover { border-color: var(--text); color: var(--text); }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+    font-size: 13px;
+    font-family: var(--font-mono);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+  }
+
+  @media print {
+    .tab-bar, .calc-btn, .print-btn, .app-header span { display: none; }
+    .tab-content { display: block !important; }
+    .tab-bar { display: none; }
+    body { background: white; }
+    .card { border: 1px solid #ccc; break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>OOG / Quote Calculator</h1>
+  <span>Over-dimensional freight reference tool</span>
+</header>
+
+<nav class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('calc', this)">Calculator</button>
+  <button class="tab-btn" onclick="switchTab('notes', this)">Reference &amp; Notes</button>
+</nav>
+
+<!-- ════════════════════════════════════════
+     TAB 1: CALCULATOR
+════════════════════════════════════════ -->
+<div id="tab-calc" class="tab-content active">
+  <div class="main-grid">
+
+    <!-- LEFT COLUMN: INPUTS -->
+    <div>
+
+      <!-- CARGO DIMENSIONS -->
+      <div class="card">
+        <div class="card-title">Cargo dimensions</div>
+        <!--
+          WIDTH LOGIC:
+          We compare the raw cargo width (in inches) against permit/escort thresholds.
+          > 102"  → over-width permit required
+          > 144"  → 1 pilot car + permit
+          > 168"  → 2 pilot cars + permit
+          > 192"  → port police escort required
+
+          HEIGHT LOGIC:
+          Total height = cargo height + flat rack overhang + chassis height.
+          We check the TOTAL (not just cargo height) against thresholds:
+          > 168"  → permit required
+          > 192"  → 1 pilot car + permit
+          > 204"  → 2 pilot cars + 1 pole car + permit
+          > 216"  → port police escort required
+          > 180"  → OVER MAX — flag as error
+        -->
+        <div class="field-row-2">
+          <div class="field">
+            <label>Cargo width (inches)</label>
+            <div class="unit-wrap">
+              <input type="number" id="width" value="108" min="0">
+              <span class="unit-tag">in</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>Cargo height (inches)</label>
+            <div class="unit-wrap">
+              <input type="number" id="cargoHeight" value="115" min="0">
+              <span class="unit-tag">in</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EQUIPMENT -->
+      <div class="card">
+        <div class="card-title">Equipment</div>
+        <!--
+          FLAT RACK OVERHANG:
+          The flat rack adds to total height because of how cargo sits on it.
+          20' flat rack adds 18" to total height.
+          40' flat rack adds 24" to total height.
+          Formula: total height = cargo height + flat rack overhang + chassis height.
+
+          CHASSIS HEIGHT:
+          This is the height from ground to the deck of the trailer.
+          Standard chassis = 48"
+          PUMA              = 38"  (lower deck, helps with tall cargo)
+          Lowboy            = 22"  (very low deck, for very tall cargo)
+          Double drop RGN   = handled separately (deck height varies by config)
+          
+          You choose the chassis type based on: does it get total height under 180"?
+          Example: cargo 115" + 40'FR 24" + standard chassis 48" = 187" → TOO HIGH
+                   cargo 115" + 40'FR 24" + PUMA 38"             = 177" → GOOD (under 180")
+        -->
+        <div class="field">
+          <label>Flat rack size</label>
+          <select id="flatRack">
+            <option value="0">No flat rack</option>
+            <option value="18">20' flat rack (+18" overhang)</option>
+            <option value="24" selected>40' flat rack (+24" overhang)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Chassis / trailer type</label>
+          <select id="chassis">
+            <option value="48" selected>Standard chassis (48")</option>
+            <option value="38">PUMA (38")</option>
+            <option value="22">Lowboy (22")</option>
+            <option value="0">Double drop RGN (manual — enter 0)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- WEIGHT & CONTAINER -->
+      <div class="card">
+        <div class="card-title">Weight &amp; container</div>
+        <!--
+          TRIAXLE CHECK (20' containers only):
+          If the container is 20' AND cargo exceeds 46,000 lbs,
+          a triaxle chassis is required to distribute the extra weight.
+          This does NOT apply to 40' containers.
+        -->
+        <div class="field-row-2">
+          <div class="field">
+            <label>Container size</label>
+            <select id="containerSize">
+              <option value="20">20' container</option>
+              <option value="40" selected>40' container</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Cargo weight (lbs)</label>
+            <div class="unit-wrap">
+              <input type="number" id="weight" value="44000" min="0">
+              <span class="unit-tag">lbs</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIRECTION -->
+      <div class="card">
+        <div class="card-title">Direction</div>
+        <!--
+          EXPORT vs IMPORT:
+          Export: shipper delivers cargo to terminal → terminal receives it → receiving charge applies.
+          Import: cargo comes IN from overseas — different charge structure applies.
+          This is a reminder flag only — does not affect permit calculations.
+        -->
+        <div class="field">
+          <label>Shipment direction</label>
+          <select id="direction">
+            <option value="import">Import</option>
+            <option value="export">Export</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="calc-btn" onclick="calculate()">→ Run OOG check</button>
+    </div>
+
+    <!-- RIGHT COLUMN: RESULTS -->
+    <div>
+      <div class="card" style="min-height: 200px;">
+        <div class="card-title">
+          Results
+          <button class="print-btn" onclick="window.print()">Print / save PDF</button>
+        </div>
+        <div id="results">
+          <div class="empty-state">Enter dimensions and click "Run OOG check"</div>
+        </div>
+      </div>
+
+      <!-- QUOTE NOTES -->
+      <div class="card">
+        <div class="card-title">Quote notes</div>
+        <textarea class="notes-area" id="quoteNotes" placeholder="Add notes for this quote — customer name, reference number, special instructions..."></textarea>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     TAB 2: REFERENCE & NOTES
+════════════════════════════════════════ -->
+<div id="tab-notes" class="tab-content">
+  <div class="notes-wrap">
+
+    <div class="ref-section">
+      <h2>Width limits &amp; requirements</h2>
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Width threshold</th>
+            <th>Requirement</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Up to 102" (8'6")</td>
+            <td>No permit needed — standard move</td>
+            <td><span class="pill ok">OK</span></td>
+          </tr>
+          <tr>
+            <td>Over 102" (8'6")</td>
+            <td>Over-width permit required</td>
+            <td><span class="pill warn">Permit</span></td>
+          </tr>
+          <tr>
+            <td>Over 144" (12')</td>
+            <td>1 pilot car + special permit</td>
+            <td><span class="pill warn">Pilot car</span></td>
+          </tr>
+          <tr>
+            <td>Over 168" (14')</td>
+            <td>2 pilot cars + special permit</td>
+            <td><span class="pill danger">2 Pilot cars</span></td>
+          </tr>
+          <tr>
+            <td>Over 192" (16')</td>
+            <td>Port police escort required</td>
+            <td><span class="pill danger">Police escort</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ref-section">
+      <h2>Height limits &amp; requirements</h2>
+      <p style="font-size: 12px; color: var(--muted); margin-bottom: 10px;">
+        Note: Height thresholds apply to <strong>total height</strong> = cargo height + flat rack overhang + chassis height.
+      </p>
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Total height threshold</th>
+            <th>Requirement</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Up to 168" (14')</td>
+            <td>No permit needed</td>
+            <td><span class="pill ok">OK</span></td>
+          </tr>
+          <tr>
+            <td>Over 168" (14')</td>
+            <td>Permit required</td>
+            <td><span class="pill warn">Permit</span></td>
+          </tr>
+          <tr>
+            <td>Over 192" (16')</td>
+            <td>1 pilot car + special permit</td>
+            <td><span class="pill warn">Pilot car</span></td>
+          </tr>
+          <tr>
+            <td>Over 204" (17')</td>
+            <td>2 pilot cars + 1 pole car + special permit</td>
+            <td><span class="pill danger">2 Pilots + pole</span></td>
+          </tr>
+          <tr>
+            <td>Over 216" (18')</td>
+            <td>Port police escort required</td>
+            <td><span class="pill danger">Police escort</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ref-section">
+      <h2>Flat rack overhang (adds to total height)</h2>
+      <table class="ref-table">
+        <thead>
+          <tr><th>Flat rack</th><th>Added height (overhang)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>20' flat rack</td><td>+18"</td></tr>
+          <tr><td>40' flat rack</td><td>+24"</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ref-section">
+      <h2>Chassis / trailer heights (deck height from ground)</h2>
+      <table class="ref-table">
+        <thead>
+          <tr><th>Chassis type</th><th>Height</th><th>Best for</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Standard chassis</td><td>48"</td><td>Standard cargo, no height concerns</td></tr>
+          <tr><td>PUMA</td><td>38"</td><td>Tall cargo needing 10" reduction</td></tr>
+          <tr><td>Lowboy</td><td>22"</td><td>Very tall cargo needing maximum reduction</td></tr>
+          <tr><td>Double drop RGN</td><td>Varies</td><td>Extremely tall / heavy loads — measure separately</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ref-section">
+      <h2>Height formula example</h2>
+      <div class="card" style="font-family: var(--font-mono); font-size: 13px; line-height: 2; background: #F9F8F5;">
+        <div><strong>Total height</strong> = cargo height + flat rack overhang + chassis height</div>
+        <div style="color: var(--danger-text);">Example: 115" + 24" (40'FR) + 48" (std chassis) = <strong>187"</strong> — TOO HIGH (over 180" max)</div>
+        <div style="color: var(--ok-text);">Fixed:    115" + 24" (40'FR) + 38" (PUMA)       = <strong>177"</strong> — GOOD (under 180")</div>
+      </div>
+    </div>
+
+    <div class="ref-section">
+      <h2>Weight rule — 20' containers</h2>
+      <table class="ref-table">
+        <thead>
+          <tr><th>Condition</th><th>Requirement</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>20' container, cargo ≤ 46,000 lbs</td>
+            <td>Standard chassis OK</td>
+          </tr>
+          <tr>
+            <td>20' container, cargo &gt; 46,000 lbs</td>
+            <td><span class="pill danger">Triaxle chassis required</span></td>
+          </tr>
+          <tr>
+            <td>40' container (any weight)</td>
+            <td>No triaxle rule — standard applies</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ref-section">
+      <h2>Export vs import — charges</h2>
+      <table class="ref-table">
+        <thead>
+          <tr><th>Direction</th><th>Flow</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Export</td>
+            <td>Shipper brings cargo → terminal receives it</td>
+            <td>Receiving charge applies</td>
+          </tr>
+          <tr>
+            <td>Import</td>
+            <td>Cargo arrives from overseas → outbound delivery</td>
+            <td>Different charge structure — verify separately</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ref-section">
+      <h2>Quick reference — max limits summary</h2>
+      <table class="ref-table">
+        <thead>
+          <tr><th>Dimension</th><th>Permit trigger</th><th>Max allowed (no escort)</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Width</td>
+            <td>&gt; 102"</td>
+            <td>Under 192" (above = police escort)</td>
+          </tr>
+          <tr>
+            <td>Total height</td>
+            <td>&gt; 168"</td>
+            <td>Under 180" operational max / under 216" (above = police escort)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ref-section">
+      <h2>Your notes</h2>
+      <textarea class="notes-area" id="globalNotes" style="min-height:160px;"
+        placeholder="Add your own notes, reminders, or internal rules here. These are saved in your browser only."></textarea>
+      <p style="font-size: 11px; color: var(--muted); margin-top: 6px;">
+        Notes are saved automatically in your browser's local storage.
+      </p>
+    </div>
+
+  </div>
+</div>
+
+
+<script>
+// ─── TAB SWITCHING ───────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ─── MAIN CALCULATION FUNCTION ──────────────────────────────────
+function calculate() {
+  // Read all input values, default to 0 if empty/NaN
+  const widthIn     = parseInt(document.getElementById('width').value)         || 0;
+  const cargoH      = parseInt(document.getElementById('cargoHeight').value)   || 0;
+  const frOver      = parseInt(document.getElementById('flatRack').value)      || 0;
+  const chassisH    = parseInt(document.getElementById('chassis').value)       || 0;  // 0 for double drop RGN
+  const container   = document.getElementById('containerSize').value;
+  const weightLbs   = parseInt(document.getElementById('weight').value)        || 0;
+  const direction   = document.getElementById('direction').value;
+
+  // ─── HEIGHT CALCULATION ───────────────────────────────────────
+  // Total height is the sum of three components:
+  //   1. Cargo height (as measured)
+  //   2. Flat rack overhang (20'FR = +18", 40'FR = +24", none = 0)
+  //   3. Chassis/trailer deck height (std=48", PUMA=38", lowboy=22", RGN=0 manual)
+  const totalHeight = cargoH + frOver + chassisH;
+
+  // Convert inches to feet for display
+  function toFt(inches) { return (inches / 12).toFixed(1) + "'"; }
+
+  let cards = [];
+
+  // ─── CARD 1: HEIGHT BREAKDOWN ─────────────────────────────────
+  // Always show the math so the user can verify each component
+  cards.push({
+    type: 'info',
+    title: 'Height breakdown',
+    breakdown: [
+      { label: 'Cargo height',       val: cargoH   + '" (' + toFt(cargoH)   + ')' },
+      { label: 'Flat rack overhang', val: '+' + frOver   + '"' },
+      { label: 'Chassis height',     val: '+' + chassisH + '"' },
+      { label: 'Total height',       val: totalHeight + '" (' + toFt(totalHeight) + ')', total: true },
+    ]
+  });
+
+  // ─── CARD 2: WIDTH ASSESSMENT ─────────────────────────────────
+  // Thresholds (all in inches):
+  //   > 102" → over-width permit
+  //   > 144" → 1 pilot car + permit  (note: original source uses 144", not 11.8ft exactly)
+  //   > 168" → 2 pilot cars + permit
+  //   > 192" → port police escort
+  let widthTags = [];
+  let widthType = 'ok';
+
+  if (widthIn > 192) {
+    widthTags.push({ label: 'Police escort required', cls: 'danger' });
+    widthType = 'danger';
+  }
+  if (widthIn > 168) {
+    widthTags.push({ label: '2 pilot cars + permit', cls: 'danger' });
+    widthType = 'danger';
+  } else if (widthIn > 144) {
+    widthTags.push({ label: '1 pilot car + permit', cls: 'warn' });
+    widthType = widthType === 'danger' ? 'danger' : 'warn';
+  }
+  if (widthIn > 102) {
+    widthTags.push({ label: 'Over-width permit', cls: 'warn' });
+    widthType = widthType === 'ok' ? 'warn' : widthType;
+  }
+  if (widthTags.length === 0) {
+    widthTags.push({ label: 'No permit needed', cls: 'ok' });
+  }
+
+  cards.push({
+    type: widthType,
+    title: 'Width: ' + widthIn + '" (' + toFt(widthIn) + ')',
+    body: widthIn > 102 ? 'Over 102" — OOG move.' : 'Within standard width.',
+    tags: widthTags
+  });
+
+  // ─── CARD 3: HEIGHT ASSESSMENT ────────────────────────────────
+  // Thresholds against TOTAL height (all in inches):
+  //   > 168" → permit required
+  //   > 180" → OVER operational maximum (flag as error — need different chassis)
+  //   > 192" → 1 pilot car + permit
+  //   > 204" → 2 pilot cars + 1 pole car + permit
+  //   > 216" → port police escort
+  let heightTags = [];
+  let heightType = 'ok';
+
+  if (totalHeight > 216) {
+    heightTags.push({ label: 'Police escort required', cls: 'danger' });
+    heightType = 'danger';
+  }
+  if (totalHeight > 204) {
+    heightTags.push({ label: '2 pilot cars + 1 pole car + permit', cls: 'danger' });
+    heightType = 'danger';
+  } else if (totalHeight > 192) {
+    heightTags.push({ label: '1 pilot car + permit', cls: 'warn' });
+    heightType = heightType === 'danger' ? 'danger' : 'warn';
+  }
+  if (totalHeight > 180) {
+    // Hard ceiling — must change equipment
+    heightTags.push({ label: 'OVER 180" MAX — change chassis', cls: 'danger' });
+    heightType = 'danger';
+  }
+  if (totalHeight > 168) {
+    heightTags.push({ label: 'Permit required', cls: 'warn' });
+    heightType = heightType === 'ok' ? 'warn' : heightType;
+  }
+  if (heightTags.length === 0) {
+    heightTags.push({ label: 'No permit needed', cls: 'ok' });
+  }
+
+  // Suggest a better chassis if over 180"
+  let heightBody = '';
+  if (totalHeight > 180) {
+    const pumaTotal  = cargoH + frOver + 38;
+    const lowboyTotal = cargoH + frOver + 22;
+    heightBody = 'Try: PUMA (' + pumaTotal + '") or Lowboy (' + lowboyTotal + '")';
+  }
+
+  cards.push({
+    type: heightType,
+    title: 'Total height: ' + totalHeight + '" (' + toFt(totalHeight) + ')',
+    body: heightBody,
+    tags: heightTags
+  });
+
+  // ─── CARD 4: TRIAXLE CHECK ────────────────────────────────────
+  // Only applies to 20' containers.
+  // If weight exceeds 46,000 lbs, a triaxle chassis is required
+  // to spread load across more axles and stay within road weight limits.
+  if (container === '20') {
+    if (weightLbs > 46000) {
+      cards.push({
+        type: 'danger',
+        title: '20\' container — triaxle chassis required',
+        body: weightLbs.toLocaleString() + ' lbs exceeds 46,000 lb threshold for standard chassis on a 20\' container.'
+      });
+    } else {
+      cards.push({
+        type: 'ok',
+        title: '20\' container — weight OK',
+        body: weightLbs.toLocaleString() + ' lbs is within the 46,000 lb limit. Standard chassis is fine.'
+      });
+    }
+  }
+
+  // ─── CARD 5: DIRECTION NOTE ───────────────────────────────────
+  // Reminder about charge differences — not a calculation, just a flag.
+  if (direction === 'export') {
+    cards.push({
+      type: 'info',
+      title: 'Export move',
+      body: 'Shipper delivers cargo to terminal → terminal receives it → receiving charge applies.'
+    });
+  } else {
+    cards.push({
+      type: 'info',
+      title: 'Import move',
+      body: 'Inbound cargo from overseas. Different charge structure applies — verify terminal fees separately.'
+    });
+  }
+
+  // ─── RENDER RESULTS ───────────────────────────────────────────
+  const el = document.getElementById('results');
+  el.innerHTML = cards.map(c => {
+    let html = '<div class="result-card ' + c.type + '">';
+    html += '<div class="r-title">' + c.title + '</div>';
+
+    // Render breakdown table if present
+    if (c.breakdown) {
+      html += '<table class="breakdown">';
+      c.breakdown.forEach(row => {
+        html += '<tr' + (row.total ? ' class="total-row"' : '') + '>';
+        html += '<td>' + row.label + '</td><td>' + row.val + '</td></tr>';
+      });
+      html += '</table>';
+    }
+
+    if (c.body) html += '<div class="r-body" style="margin-top:4px;">' + c.body + '</div>';
+
+    if (c.tags) {
+      html += '<div style="margin-top:6px;">';
+      c.tags.forEach(t => {
+        html += '<span class="tag ' + t.cls + '">' + t.label + '</span>';
+      });
+      html += '</div>';
+    }
+
+    html += '</div>';
+    return html;
+  }).join('');
+}
+
+// ─── NOTES PERSISTENCE (localStorage) ─────────────────────────
+// Notes are saved in the browser — no server needed.
+// They persist between sessions on the same device/browser.
+const globalNotesKey = 'oog_global_notes';
+const quoteNotesKey  = 'oog_quote_notes';
+
+function loadNotes() {
+  const gn = localStorage.getItem(globalNotesKey);
+  const qn = localStorage.getItem(quoteNotesKey);
+  if (gn) document.getElementById('globalNotes').value = gn;
+  if (qn) document.getElementById('quoteNotes').value  = qn;
+}
+
+function saveNotes() {
+  localStorage.setItem(globalNotesKey, document.getElementById('globalNotes').value);
+  localStorage.setItem(quoteNotesKey,  document.getElementById('quoteNotes').value);
+}
+
+// Auto-save on any keystroke in either textarea
+document.addEventListener('DOMContentLoaded', () => {
+  loadNotes();
+  document.getElementById('globalNotes').addEventListener('input', saveNotes);
+  document.getElementById('quoteNotes').addEventListener('input', saveNotes);
+
+  // Run initial calculation on load so results show immediately
+  calculate();
+});
+</script>
+
+</body>
+</html>
